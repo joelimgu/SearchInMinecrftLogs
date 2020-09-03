@@ -1,12 +1,15 @@
 from ftplib import FTP
 from typing import List
-
+import os
 
 def download_logs(path: str, ftp: FTP) -> List[str]:
     # downloads the all the files in the folder in tha path given into the downloads folder
     ftp.cwd(path)
     directories = get_dir(ftp)
     downloaded_files = []
+
+    if not os.path.exists("downloads"):
+        os.makedirs("downloads")
     for i in range(len(directories)):
         ftp.cwd(path)
         ftp.cwd(path + directories[i])

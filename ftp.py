@@ -1,62 +1,36 @@
-import sys
-import ftplib
-import os
-import time
-
-server = "FTPHOST"
-user = "anonymous"
-password = "anonymous"
-source = "/Folder/SourceFolder/"
-destination = "/home/user/downloads/"
-interval = 0.05
-
-ftp = ftplib.FTP(server)
-ftp.login(user, password)
+from ftplib import FTP
+from typing import List
 
 
-def download_files(path, destination):
-    try:
+def download_logs(path: str, ftp: FTP) -> List[str]:
+    # downloads the all the files in the folder in tha path given into the downloads folder
+    ftp.cwd(path)
+    directories = get_dir(ftp)
+    downloaded_files = []
+    for i in range(len(directories)):
         ftp.cwd(path)
-        os.chdir(destination)
-        mkdir_p(destination[0:len(destination) - 1] + path)
-        print
-        "Created: " + destination[0:len(destination) - 1] + path
-    except OSError:
-        pass
-    except ftplib.error_perm:
-        print
-        "Error: could not change to " + path
-        sys.exit("Ending Application")
+        ftp.cwd(path + directories[i])
+        files = ftp.nlst()
+        for n in range(len(files)):
+            print("downloading %s from %s" % (files[n], directories[i]))
+            with open('downloads/%s-%s' % (directories[i], files[n]), 'wb') as fp:
+                ftp.retrbinary('RETR ' + files[n], fp.write)
+            fp.close()
+            downloaded_files.append('downloads/%s-%s' % (directories[i], files[n]))
+    return downloaded_files
 
-    filelist = ftp.nlst()
 
-    for file in filelist:
-        time.sleep(interval)
+def get_dir(ftp: FTP) -> List[str]:
+    files = ftp.nlst()
+    directories = []
+    for i in range(len(files)):
         try:
-            ftp.cwd(path + file + "/")
-            download_files(path + file + "/", destination)
-        except ftplib.error_perm:
-            os.chdir(destination[0:len(destination) - 1] + path)
-
-            try:
-                ftp.retrbinary("RETR " + file, open(os.path.join(destination + path, file), "wb").write)
-                print
-                "Downloaded: " + file
-            except:
-                print
-                "Error: File could not be downloaded " + file
-    return
+            if files[i].index(".") < 0:
+                pass
+        except ValueError:
+            directories.append(files[i])
+    return directories
 
 
-def mkdir_p(path):
-    try:
-        os.makedirs(path)
-    except OSError as exc:
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            raise
-
-
-download_files(source, destination)
-
+#def listLineCallback(line):
+#   msg = "** %s*" % line
